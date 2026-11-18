@@ -221,3 +221,19 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# Project-specific exclusions
+
+# Environment variables
+.env.*
+!.env.example
+
+# SQLite database files
+/database/*.db
+/database/*.sqlite
+/database/*.sqlite3
+
+# VS Code settings
+.vscode/
+
+# Generated Python files
+__pycache__/

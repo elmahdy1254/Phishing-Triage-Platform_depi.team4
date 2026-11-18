@@ -1,0 +1,14 @@
+{
+  "tables_created": [
+    "analysis_reports",
+    "attachments",
+    "detection_findings",
+    "emails",
+    "header_analysis",
+    "threat_intel_results",
+    "urls"
+  ],
+  "cascade_delete_test": "passed",
+  "foreign_key_check": "passed",
+  "integrity_check": "ok"
+}
