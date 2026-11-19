@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analysis Report | Phishing Triage</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5.3 & Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+  <!-- Application Stylesheets -->
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/print.css" media="print">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <div class="app-layout">
+    <!-- Mobile Sidebar Backdrop -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Collapsible Sidebar -->
+    <aside class="sidebar" id="sidebar" aria-label="Sidebar Navigation">
+      <div class="sidebar__brand">
+        <img src="assets/logo.svg" alt="Shield Logo" class="sidebar__brand-icon" width="24" height="24">
+        <span class="sidebar__brand-text">Phishing Triage</span>
+      </div>
+
+      <nav class="sidebar__nav">
+        <div class="sidebar__section-label">Operations</div>
+        <a href="index.html" class="sidebar__link" data-page="dashboard" data-tooltip="Dashboard">
+          <i class="bi bi-grid-1x2 sidebar__link-icon" aria-hidden="true"></i>
+          <span class="sidebar__link-text">Dashboard</span>
+        </a>
+        <a href="analyze.html" class="sidebar__link" data-page="analyze" data-tooltip="New Analysis">
+          <i class="bi bi-shield-plus sidebar__link-icon" aria-hidden="true"></i>
+          <span class="sidebar__link-text">New Analysis</span>
+        </a>
+        <a href="history.html" class="sidebar__link" data-page="history" data-tooltip="History">
+          <i class="bi bi-clock-history sidebar__link-icon" aria-hidden="true"></i>
+          <span class="sidebar__link-text">History</span>
+        </a>
+
+        <div class="sidebar__section-label">System</div>
+        <a href="settings.html" class="sidebar__link" data-page="settings" data-tooltip="Settings">
+          <i class="bi bi-gear sidebar__link-icon" aria-hidden="true"></i>
+          <span class="sidebar__link-text">Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar__footer">
+        <button class="sidebar__collapse-btn" id="sidebar-collapse-btn" type="button" aria-label="Collapse sidebar">
+          <i class="bi bi-chevron-left" aria-hidden="true"></i>
+          <span class="sidebar__collapse-label">Collapse Menu</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Top Bar -->
+    <header class="topbar">
+      <button class="sidebar-toggle-mobile" id="sidebar-toggle-mobile" type="button" aria-label="Open mobile menu">
+        <i class="bi bi-list" aria-hidden="true"></i>
+      </button>
+
+      <div class="d-none d-md-flex align-items-center gap-2">
+        <a href="history.html" class="text-sand-muted text-decoration-none text-sm">Analyses</a>
+        <span class="text-sand-faint text-xs">/</span>
+        <span class="topbar__title" id="topbar-filename">Forensics Report</span>
+      </div>
+
+      <div class="topbar__spacer"></div>
+
+      <!-- Quick Search -->
+      <div class="topbar__search">
+        <i class="bi bi-search topbar__search-icon" aria-hidden="true"></i>
+        <input type="search" class="topbar__search-input" id="global-search" placeholder="Search ID, sender, subject..." aria-label="Search past analyses">
+      </div>
+
+      <!-- API Health Indicator -->
+      <div class="topbar__actions">
+        <div class="api-status api-status--checking" id="api-status-indicator" title="Backend connectivity">
+          <span class="api-status__dot" id="api-status-dot"></span>
+          <span id="api-status-label">Checking...</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content" id="main-content">
+      <div class="main-content__inner">
+
+        <!-- Error & Status Banners -->
+        <div id="report-error-container"></div>
+
+        <!-- Skeleton Loader (displayed while fetching) -->
+        <div id="report-skeleton-container" class="mb-5">
+          <div class="card p-4 mb-4">
+            <div class="skeleton-line skeleton-title mb-3"></div>
+            <div class="skeleton-line skeleton-long mb-2"></div>
+            <div class="skeleton-line skeleton-short"></div>
+          </div>
+          <div class="grid-2 mb-4">
+            <div class="card p-4">
+              <div class="skeleton-line skeleton-title mb-3"></div>
+              <div class="skeleton-line mb-2"></div>
+              <div class="skeleton-line mb-2"></div>
+            </div>
+            <div class="card p-4">
+              <div class="skeleton-line skeleton-title mb-3"></div>
+              <div class="skeleton-line mb-2"></div>
+              <div class="skeleton-line mb-2"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Report Main Body (hidden initially) -->
+        <div id="report-content" class="d-none">
+
+          <!-- 1. Header Section: Metadata & Risk Score Gauge -->
+          <section class="card mb-4" id="section-header">
+            <div class="card-body p-4 p-md-5">
+              <div class="row align-items-center g-4">
+                <!-- Left: File Metadata & Action Buttons -->
+                <div class="col-lg-8">
+                  <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                    <span class="badge badge-auth--neutral" id="report-id-badge">ID: —</span>
+                    <span class="text-sand-faint text-xs" id="report-timestamp">—</span>
+                  </div>
+
+                  <h2 class="h3 text-sand mb-2 text-break" id="report-filename">email.eml</h2>
+
+                  <div class="d-flex align-items-center gap-3 text-sm text-sand-muted mb-4 flex-wrap">
+                    <div><strong class="text-sand">Sender:</strong> <span class="mono" id="report-meta-sender">—</span></div>
+                    <div><strong class="text-sand">Subject:</strong> <span id="report-meta-subject">—</span></div>
+                  </div>
+
+                  <!-- Quick Actions Toolbar -->
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <!-- Export Dropdown -->
+                    <div class="dropdown">
+                      <button class="btn btn-secondary dropdown-toggle" type="button" id="exportDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-download me-1" aria-hidden="true"></i> Export Report
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-dark bg-surface-2 border-subtle" aria-labelledby="exportDropdownBtn">
+                        <li><a class="dropdown-item text-sand" href="#" id="export-json-btn"><i class="bi bi-filetype-json me-2"></i>JSON Payload</a></li>
+                        <li><a class="dropdown-item text-sand" href="#" id="export-csv-btn"><i class="bi bi-filetype-csv me-2"></i>CSV Summary</a></li>
+                        <li><hr class="dropdown-divider border-subtle my-1"></li>
+                        <li><a class="dropdown-item text-sand" href="#" id="export-pdf-btn"><i class="bi bi-printer me-2"></i>Print / Save as PDF</a></li>
+                      </ul>
+                    </div>
+
+                    <!-- Copy IOCs -->
+                    <button type="button" class="btn btn-secondary" id="copy-iocs-btn" title="Copy all domains, IPs, and hashes">
+                      <i class="bi bi-clipboard-data me-1" aria-hidden="true"></i> Copy IOCs
+                    </button>
+
+                    <!-- Re-analyze -->
+                    <button type="button" class="btn btn-secondary" id="reanalyze-btn" title="Re-run forensic triage pipeline">
+                      <i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i> Re-analyze
+                    </button>
+
+                    <!-- Delete -->
+                    <button type="button" class="btn btn-ghost text-danger ms-auto" id="delete-analysis-btn" title="Delete this analysis report">
+                      <i class="bi bi-trash3 me-1" aria-hidden="true"></i> Delete
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Right: Animated Circular Risk Gauge -->
+                <div class="col-lg-4 d-flex flex-column align-items-center justify-content-center border-start-lg ps-lg-4">
+                  <div class="risk-gauge" id="risk-gauge-container">
+                    <svg class="risk-gauge__svg" viewBox="0 0 130 130" width="130" height="130">
+                      <circle class="risk-gauge__track" cx="65" cy="65" r="54"></circle>
+                      <circle class="risk-gauge__fill" id="gauge-fill-circle" cx="65" cy="65" r="54" stroke-dasharray="339.292" stroke-dashoffset="339.292"></circle>
+                    </svg>
+                    <div class="risk-gauge__label text-center">
+                      <span class="risk-gauge__score" id="gauge-score-value">0</span>
+                      <span class="risk-gauge__verdict" id="gauge-verdict-label">ANALYZING</span>
+                    </div>
+                  </div>
+                  <div class="mt-2 text-center">
+                    <span class="badge-verdict" id="report-verdict-badge">
+                      <span class="badge-dot"></span>
+                      <span id="report-verdict-text">—</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2. Grid Row: Envelope Card & Authentication Card -->
+          <div class="grid-2 mb-4">
+
+            <!-- Envelope Metadata Card -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-header__title">
+                  <i class="bi bi-envelope-paper-fill" aria-hidden="true"></i> Envelope & Headers
+                </h3>
+                <span class="badge badge-auth--neutral">RFC 822</span>
+              </div>
+              <div class="card-body">
+                <dl class="row mb-0 text-sm">
+                  <dt class="col-sm-3 text-sand-faint">From:</dt>
+                  <dd class="col-sm-9 text-sand mono mb-2 text-break" id="env-from">—</dd>
+
+                  <dt class="col-sm-3 text-sand-faint">Reply-To:</dt>
+                  <dd class="col-sm-9 text-sand mono mb-2 text-break" id="env-reply-to">—</dd>
+
+                  <dt class="col-sm-3 text-sand-faint">To:</dt>
+                  <dd class="col-sm-9 text-sand mono mb-2 text-break" id="env-to">—</dd>
+
+                  <dt class="col-sm-3 text-sand-faint">Subject:</dt>
+                  <dd class="col-sm-9 text-sand mb-2 text-break" id="env-subject">—</dd>
+
+                  <dt class="col-sm-3 text-sand-faint">Date:</dt>
+                  <dd class="col-sm-9 text-sand-muted mb-2" id="env-date">—</dd>
+
+                  <dt class="col-sm-3 text-sand-faint">Message-ID:</dt>
+                  <dd class="col-sm-9 mb-0">
+                    <div class="copiable">
+                      <span class="copiable__value" id="env-message-id">—</span>
+                      <button type="button" class="copy-btn" id="copy-msgid-btn" title="Copy Message-ID" aria-label="Copy Message-ID">
+                        <i class="bi bi-clipboard" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </dd>
+                </dl>
+
+                <!-- Collapsible Message Body Viewer -->
+                <div class="mt-4 pt-3 border-top">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-xs text-sand-faint text-uppercase fw-semibold">Sanitized Plaintext Body</span>
+                    <button type="button" class="btn btn-sm btn-ghost" id="toggle-body-btn">
+                      <i class="bi bi-chevron-down me-1" id="toggle-body-icon"></i> Show Body
+                    </button>
+                  </div>
+                  <div id="body-text-wrapper" class="d-none">
+                    <pre class="mono text-xs mb-0" id="env-body-text" style="max-height: 240px; overflow-y: auto;"></pre>
+                    <small class="text-sand-faint d-block mt-1">Rendered in strict plaintext isolation. HTML tags and tracking pixels defanged.</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Authentication & Spoofing Indicators Card -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-header__title">
+                  <i class="bi bi-shield-check" aria-hidden="true"></i> Authentication & Spoofing
+                </h3>
+                <span class="badge badge-auth--neutral">Validation</span>
+              </div>
+              <div class="card-body">
+                <!-- 3 Auth Chips: SPF, DKIM, DMARC -->
+                <div class="row text-center g-2 mb-4">
+                  <div class="col-4">
+                    <div class="p-3 bg-surface-2 rounded-2 border">
+                      <div class="text-xs text-sand-faint text-uppercase mb-1">SPF</div>
+                      <span class="badge-auth" id="auth-spf-badge" data-bs-toggle="tooltip" title="Sender Policy Framework IP authorization">
+                        <span id="auth-spf-text">NONE</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="col-4">
+                    <div class="p-3 bg-surface-2 rounded-2 border">
+                      <div class="text-xs text-sand-faint text-uppercase mb-1">DKIM</div>
+                      <span class="badge-auth" id="auth-dkim-badge" data-bs-toggle="tooltip" title="DomainKeys Identified Mail cryptographic signature">
+                        <span id="auth-dkim-text">NONE</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="col-4">
+                    <div class="p-3 bg-surface-2 rounded-2 border">
+                      <div class="text-xs text-sand-faint text-uppercase mb-1">DMARC</div>
+                      <span class="badge-auth" id="auth-dmarc-badge" data-bs-toggle="tooltip" title="Domain-based Message Authentication alignment policy">
+                        <span id="auth-dmarc-text">NONE</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Spoofing Indicators List -->
+                <div>
+                  <h4 class="text-xs text-sand-faint text-uppercase fw-semibold mb-2">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> Spoofing Indicators
+                  </h4>
+                  <ul class="list-unstyled mb-0 d-flex flex-column gap-2" id="spoofing-indicators-list">
+                    <!-- Dynamically populated -->
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 3. Risk Breakdown Factors Card -->
+          <section class="card mb-4">
+            <div class="card-header">
+              <h3 class="card-header__title">
+                <i class="bi bi-bar-chart-steps" aria-hidden="true"></i> Risk Score Breakdown
+              </h3>
+              <span class="badge badge-auth--neutral">Cumulative Weights</span>
+            </div>
+            <div class="card-body">
+              <div class="risk-breakdown" id="risk-breakdown-container">
+                <!-- Injected via report.js -->
+              </div>
+            </div>
+          </section>
+
+          <!-- 4. Routing Chain (Received Hops) -->
+          <section class="card mb-4">
+            <div class="card-header">
+              <h3 class="card-header__title">
+                <i class="bi bi-diagram-3-fill" aria-hidden="true"></i> Mail Routing Path (Received: Chain)
+              </h3>
+              <span class="badge badge-auth--neutral" id="hops-count-badge">0 Hops</span>
+            </div>
+            <div class="card-body">
+              <ul class="timeline mb-0" id="routing-timeline">
+                <!-- Dynamically populated hops -->
+              </ul>
+            </div>
+          </section>
+
+          <!-- 5. URLs & Domains Forensics Table -->
+          <section class="card card--flush mb-4">
+            <div class="card-header">
+              <div class="d-flex align-items-center gap-3 flex-wrap">
+                <h3 class="card-header__title">
+                  <i class="bi bi-link-45deg" aria-hidden="true"></i> Extracted URLs & Domains
+                </h3>
+                <span class="badge badge-auth--neutral" id="urls-count-badge">0 URLs</span>
+              </div>
+              <div class="card-header__actions">
+                <div class="form-check form-switch mb-0">
+                  <input class="form-check-input" type="checkbox" id="flagged-urls-only-toggle" role="switch">
+                  <label class="form-check-label text-xs text-sand-muted" for="flagged-urls-only-toggle">Flagged only</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-responsive-wrapper">
+              <table class="table-dark-custom mb-0" id="urls-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Extracted URL</th>
+                    <th scope="col">Domain</th>
+                    <th scope="col">Verdict</th>
+                    <th scope="col">Threat Intel</th>
+                    <th scope="col">Detections</th>
+                    <th scope="col" class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="urls-tbody">
+                  <!-- Populated safely via report.js -->
+                </tbody>
+              </table>
+              <div id="urls-empty-msg" class="p-4 text-center text-sand-faint d-none">No URLs found in email body.</div>
+            </div>
+          </section>
+
+          <!-- 6. Attachments Forensics Table -->
+          <section class="card card--flush mb-5">
+            <div class="card-header">
+              <h3 class="card-header__title">
+                <i class="bi bi-paperclip" aria-hidden="true"></i> Attachments & Cryptographic Hashes
+              </h3>
+              <span class="badge badge-auth--neutral" id="attachments-count-badge">0 Attachments</span>
+            </div>
+
+            <div class="table-responsive-wrapper">
+              <table class="table-dark-custom mb-0" id="attachments-table">
+                <thead>
+                  <tr>
+                    <th scope="col">File Name</th>
+                    <th scope="col">Type / Ext</th>
+                    <th scope="col">Size</th>
+                    <th scope="col">MD5 Digest</th>
+                    <th scope="col">SHA-256 Digest</th>
+                    <th scope="col">Verdict</th>
+                    <th scope="col">Detections</th>
+                  </tr>
+                </thead>
+                <tbody id="attachments-tbody">
+                  <!-- Populated safely via report.js -->
+                </tbody>
+              </table>
+              <div id="attachments-empty-msg" class="p-4 text-center text-sand-faint d-none">No file attachments detected in this message.</div>
+            </div>
+          </section>
+
+        </div> <!-- /report-content -->
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module" src="js/report.js"></script>
+</body>
+</html>
