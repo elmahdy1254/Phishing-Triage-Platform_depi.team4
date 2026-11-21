@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Shield shape (simplified) -->
+  <path d="M16 1L4 7v8c0 7.4 5.1 14.3 12 16 6.9-1.7 12-8.6 12-16V7L16 1z" fill="none" stroke="#D8CBB3" stroke-width="2" stroke-linejoin="round"/>
+  <!-- Envelope body -->
+  <rect x="9" y="12" width="14" height="10" rx="1.5" ry="1.5" fill="none" stroke="#D8CBB3" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- Envelope flap -->
+  <polyline points="9,12 16,18 23,12" fill="none" stroke="#D8CBB3" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
